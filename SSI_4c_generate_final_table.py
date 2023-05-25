@@ -186,7 +186,7 @@ for ID in all_cti['Sample_only']:
 #########
 # Query the AMDB for the site metadata needed and merge it with the CI table
 #########
-returnfields=['sample_id','nrs_trip_code','nrs_sample_code','sample_site_location_description','latitude','longitude','collection_date','utc_time_sampled','utc_date_sampled','imos_site_code','depth','density','tot_depth_water_col','chlorophyll_a','ammonium','total_co2','turbidity','alkalinity','secchi_depth','picoeukaryotes','prochlorococcus','synechococcus']
+returnfields=['sample_id','nrs_trip_code','nrs_sample_code','voyage_code','sample_site_location_description','latitude','longitude','collection_date','utc_time_sampled','utc_date_sampled','imos_site_code','depth','density','tot_depth_water_col','chlorophyll_a','ammonium','total_co2','turbidity','alkalinity','secchi_depth','picoeukaryotes','prochlorococcus','synechococcus']
 searchfield = 'sample_id'
 selectColumns_by_fieldValues(returnfields, searchfield, var_list)
 #make the NRS TripCode_depth from the nrs_sample_code
@@ -308,7 +308,7 @@ shutil.move('AM_input_file_metadata.txt', 'data/AM_input_file_metadata.txt')
 #- dictionary should be structured with the column order that IMOS wants
 #- dict structure should be <AM_column_name>:<IMOS_column name> - known mappings so far are below 
 #- all columns to be retained in final table should be listed - even if the key:val are the same
-column_dict = {'Sample_only':'code','TripCode_depth':'TripCode_depth','nrs_trip_code':'TripCode',\
+column_dict = {'Sample_only':'code','TripCode_depth':'TripCode_depth','nrs_trip_code':'TripCode','voyage_code':'voyage_code',\
 'sample_site_location_description':'StationName','StationCode':'StationCode',\
 'longitude':'Longitude','latitude':'Latitude','collection_date':'SampleDateUTC',\
 'utc_time_sampled':'Time_24hr','Year':'Year','Month':'Month','Day':'Day',\
