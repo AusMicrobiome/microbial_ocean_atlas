@@ -1,4 +1,4 @@
-#NRS_taxon_list.csv - a list of formatted taxonomies to search abundances 
+#NRS_taxon_list.csv - a list of formatted SILVA138 taxonomies of interest, will be used to generate a table containing abundances of each taxa at NRS sites
 d__Bacteria,p__Cyanobacteria,c__Cyanobacteriia,o__Cyanobacteriales,f__Phormidiaceae,g__Trichodesmium
 d__Eukaryota,p__Dinoflagellata,c__Dinoflagellata,o__Noctilucales,f__Noctilucales,g__Noctiluca,s__Noctiluca_scintillans
 d__Eukaryota,p__Ochrophyta,c__Raphidophyceae,o__Chattonellales,f__Chattonellales,g__Chattonella
