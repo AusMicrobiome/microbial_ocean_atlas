@@ -460,6 +460,10 @@ all_cti = all_cti[known_col_variants]
 #map the column names to the IMOS format
 all_cti.columns = all_cti.columns.to_series().map(column_dict)
 
+#fill the TripCode column with the information from the voyage_code (git issue #10)
+all_cti['TripCode'] = all_cti['TripCode'].combine_first(all_cti['voyage_code'])
+all_cti.drop(['voyage_code'],axis=1, inplace=True)
+
 #########
 # Write the final output file- we will overwrite the file in the data dir
 #########
