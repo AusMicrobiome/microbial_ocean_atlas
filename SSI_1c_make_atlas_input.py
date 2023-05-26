@@ -90,7 +90,7 @@ def write_files_used(filename):
 #########
 #Query the AMDB for the samples we need
 #########
-returnfields = ['sample_id','temp', 'salinity', 'nitrate_nitrite', 'phosphate', 'silicate','oxygen','sample_integrity_warnings','voyage_code']
+returnfields = ['sample_id','temp', 'salinity', 'nitrate_nitrite', 'phosphate', 'silicate','oxygen','sample_integrity_warnings']
 searchfield = 'sample_type'
 var_list = ['Pelagic','Coastal water']
 selectColumns_by_fieldValues(returnfields, searchfield, var_list)
