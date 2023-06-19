@@ -1,4 +1,4 @@
-#NRS_taxon_list.csv - a list of formatted taxonomies to search abundances
+#NRS_taxon_list.csv - a list of SILVA138 formatted taxonomies to search abundances
 d__Bacteria,p__Cyanobacteria,c__Cyanobacteriia,o__Cyanobacteriales,f__Phormidiaceae,g__Trichodesmium
 d__Bacteria,p__Cyanobacteria,c__Cyanobacteriia,o__Cyanobacteriales,f__Phormidiaceae,g__Trichodesmium_IMS101,s__Trichodesmium_tenue
 d__Bacteria,p__Cyanobacteria,c__Cyanobacteriia,o__Cyanobacteriales,f__Phormidiaceae,g__Trichodesmium_IMS101,s__Trichodesmium_erythraeum
