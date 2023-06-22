@@ -47,7 +47,7 @@ Failed arrays can be re run by directly calling the script and passing appropria
 
 `module load R/4.1.3`
 
-`Rscript SSI_CSIRO_MOA_bootstraps.R "16S" "579"`
+`Rscript SSI_2c_CSIRO_MOA_bootstraps.R "16S" "579"`
 
 If no failed slurms, remove the slurm out files
 
@@ -71,7 +71,7 @@ Failed arrays can be re run by directly calling the script and passing appropria
 
 `module load R/4.1.3`
 
-`Rscript SSI_CSIRO_sample_indexes.R "16S" "Temperature"`
+`Rscript SSI_3c_CSIRO_sample_indexes.R "16S" "Temperature"`
 
 If no failed slurms, remove the slurm out files
 
