@@ -76,6 +76,21 @@ parameters_list = parameters['param'].values.tolist()
 merge_cols = ['Sample_only'] + parameters_list
 all_cti = pd.DataFrame(columns=merge_cols)
 amplicons = ['16S', 'A16S', '18Sv4']
+
+print("Getting requested traits and Taxa")
+traits_wanted = set()
+with open('trait_request.list', mode='r') as f:
+    for line in f:
+        if "#" in line:
+            continue
+        #skip any blank lines
+        if len(line.strip()) == 0:
+            continue
+        traits_wanted.add(line.strip())
+print("Requested Traits")
+print(traits_wanted)
+traits_string = '|'.join(traits_wanted)
+
 for amplicon in amplicons:
     #########
     # Define file paths
@@ -122,16 +137,15 @@ for amplicon in amplicons:
         print(tax.shape)
         print("Selecting traits")
         tax['traits'].fillna('nan',inplace=True)
-        tax = tax[tax['traits'].str.contains('fish_parasites|nitrogen_fixation')].reset_index(drop=True)
+        tax = tax[tax['traits'].str.contains(traits_string)].reset_index(drop=True)
         print(tax.shape)
         tax = tax.reset_index(drop=True).astype(str)
         traits_merged = pd.merge(tax,abund,left_on='#OTU ID',right_on='#OTU ID', how='left')
         print(traits_merged.shape)
         traits_merged = traits_merged[traits_merged['Sample_only'].notna()].reset_index(drop=True)
         print(traits_merged.shape)
-        traits_list = ['fish_parasites','nitrogen_fixation']
         trait_abund = []
-        for trait in traits_list:
+        for trait in traits_wanted:
             col_name = amplicon + "_" + trait
             trait_abund.append(col_name)
             traits_merged[col_name] =  np.nan
@@ -154,7 +168,7 @@ for amplicon in amplicons:
     all_cti = pd.merge(all_cti,cti_merge, left_on=merge_cols, right_on=merge_cols, how='outer')
     print(all_cti.shape)
 #sum the traits for each amplicon into one total column
-for trait in traits_list:
+for trait in traits_wanted:
     trait_columns = [s for s in all_cti.columns if trait in s]
     all_cti[trait] = all_cti[trait_columns].sum(axis=1)
 

@@ -1,4 +1,4 @@
-#A list of SILVA138 formatted taxonomies to search ASV abundances
+#A list of SILVA138 formatted taxonomies to search for ASV abundances
 d__Bacteria;p__Cyanobacteria;c__Cyanobacteriia;o__Cyanobacteriales;f__Phormidiaceae;g__Trichodesmium
 d__Bacteria;p__Cyanobacteria;c__Cyanobacteriia;o__Cyanobacteriales;f__Phormidiaceae;g__Trichodesmium_IMS101;s__Trichodesmium_tenue
 d__Bacteria;p__Cyanobacteria;c__Cyanobacteriia;o__Cyanobacteriales;f__Phormidiaceae;g__Trichodesmium_IMS101;s__Trichodesmium_erythraeum
@@ -7,5 +7,4 @@ d__Eukaryota;p__Dinoflagellata;c__Dinoflagellata;o__Noctilucales;f__Noctilucales
 d__Eukaryota;p__Ochrophyta;c__Raphidophyceae;o__Chattonellales;f__Chattonellales;g__Chattonella
 d__Eukaryota;p__Ochrophyta;c__Raphidophyceae;o__Chattonellales;f__Chattonellales;g__Heterosigma
 d__Eukaryota;p__Ochrophyta;c__Dictyochophyceae;o__Florenciellales;f__Florenciellales;g__Pseudochattonella
-
 

@@ -1,15 +1,13 @@
 #!/usr/bin/env python
 
 '''
-SSI_1c_make_atlas_input.py
+make_ocean_atlas_input.py
 
-A script generates an input file to calculate community indexes for Marine samples held in the AM
+A script generate a input file to calculate community indexes for Marine samples held in the AM
 The script will:
-1) Query the Australian Microbiome database for samples designated as 'Pelagic' and 'Coastal water' and retrieve specific physiochemical parameters
-2) Add the sample specific physiochemical metadata to ASV, abundance and abundance_20K information for each sample
-3) Script will generate a file containing the abundance (subsampled to 20K reads) of taxa of interest.
-    - Taxa of interest are defined in the file `NRS_taxon_list.csv` and follow Silva138 taxonomy formatted to include taxonomic level descriptions (e.g., d__<name>,p__<name>,c__<name>,o__<name>,f__<name>,g__<name>,s__<name>).
-    - Classifications from SKlearn are used.
+1) Query the Australian Microbiome database for samples designated as 'Pelagic' and 'Coastal water' and retrieve specific physiochemical parameters  
+2) Merge pysiochemical information with ASV, abundance information for each sample
+3) Generate an ASV abundance table of requested taxa and traits 
 '''
 
 import pandas as pd
@@ -86,6 +84,17 @@ def write_files_used(filename):
     with open('files_analysed.txt', mode='a') as f:
         f.write(f'{filename}\n')
 
+def split_lines(line):
+    global tmp
+    tmp = []
+    if trait_col == True:
+        for ele in line.split('\t'):
+            tmp.append(ele)
+    else:
+        for ele in line.split('\t'):
+            tmp.append(ele)
+        tmp.append('')
+    return tmp
 
 #########
 #Query the AMDB for the samples we need
@@ -115,44 +124,50 @@ df_cols = selectFields.columns.tolist()
 #make a dictionary of each row of the metadata dataframe
 meta_dict = selectFields.to_dict(orient='index')
 
-All_Amplicons = ['16S','A16S','18Sv4']
 
-#get all NRS samples to crete the taxonomy abundance table
-returnfields = ['sample_id','depth', 'nrs_trip_code', 'nrs_sample_code','sample_integrity_warnings']
-searchfield = 'imos_site_code'
-wild_card = 'NRS%'
-selectColumns_by_partialValues(returnfields, searchfield, wild_card)
+Taxonomies = []
+lowest_tax = set()
+with open('taxa_request.list', mode='r') as f:
+    for line in f:
+        #skip the header
+        if '#' in line:
+            continue
+        #skip any blank lines
+        if len(line.strip()) == 0:
+            continue
+        tmp = []
+        for ele in line.split(';'):
+            if '\n' in ele:
+                lowest_tax.add(ele.strip())
+            tmp.append(ele.strip())
+        Taxonomies.append(tmp)
+print(Taxonomies)
+print(lowest_tax)
 
-print("Removing samples with integrity warnings")
-stringMatch = stringMatch[~stringMatch['sample_integrity_warnings'].notnull()]
-stringMatch['Sample_only'] = stringMatch['sample_id'].apply(lambda x: x.replace('102.100.100/','') if 'SAMN' not in x else x)
-print("shape of NRS samples df")
-print(stringMatch.shape)
-
-#get a list of the NRS sample IDs 
-NRS_IDs = set(stringMatch['Sample_only'].values.tolist())
-# make an empty list to hold a list of each line matching a NRS ID 
-NRS_list = []
-
-dt = datetime.now().strftime("%Y%m%d%H%M")
-
-
-for amplicon in All_Amplicons:
+#Define the amplicon we will use to grab the taxa from
+taxon_dict = {}
+for taxon in Taxonomies:
+    if taxon[0] == 'd__Bacteria':
+        taxon_dict.update({taxon[0]:'16S'})
+    if taxon[0] == 'd__Eukaryota':
+        taxon_dict.update({taxon[0]:'18Sv4'})
+    if taxon[0] == 'd__Archaea':
+        taxon_dict.update({taxon[0]:'A16S'})
+for domain, amplicon in taxon_dict.items():
+    print(domain)
     print(amplicon)
-    #########
-    # Get the ASV abundance table and read it
-    #########
-    
-    #Sample_only,#OTU ID,Abundance,Abundance_20K,temp,salinity,nitrate_nitrite,phosphate,silicate,oxygen
-    amplicon_path = glob.glob('/datasets/work/oa-amd/work/amd-work/zotutabs/' + amplicon + '/short/*_all_20K_combined.txt')[0]
-    abund_file = glob.glob(amplicon_path)[0]
 
-    outfile_all = amplicon + "_" + dt + "_infile_multi_params_all.csv"
+
+All_Amplicons = ['16S','A16S','18Sv4']
+ASV_list = []
+for amplicon in All_Amplicons:
+    abund_file = glob.glob('/datasets/work/oa-amd/work/amd-work/zotutabs/' + amplicon + '/short/*_all_20K_combined.txt')[0]
+    outfile_all = amplicon + "_infile_multi_params_all.csv"
     
     print("saving merged abundance and metadata: " + outfile_all)
 
     #########
-    # Open the ASV abundance table and output file to write the combined data data
+    # Open the ASV abundance table and output files for each aplicon to alculate indicies we wil also generate a lits to use to look at taxa and traits combined data
     #########
 
     with open(abund_file, mode='r') as abund,\
@@ -165,10 +180,10 @@ for amplicon in All_Amplicons:
                 #join the abundance and meta headers
                 header = header + meta_cols
                 out.write(f'{header}\n')
-                NRS_header = []
+                ASV_header = []
                 line = line.rstrip('\n')
                 for ele in line.split('\t'):
-                    NRS_header.append(ele)
+                    ASV_header.append(ele)
                 continue
             otu,ID,Abund,Abund_20K = line.split('\t')
             Abund_20K = Abund_20K.rstrip()
@@ -177,127 +192,184 @@ for amplicon in All_Amplicons:
                 for col in meta_dict[ID]:
                     tmp_string = tmp_string + str(meta_dict[ID].get(col)) + ","
                 tmp_string = tmp_string.rstrip(',')
-                tmp = f'{ID},{otu},{Abund},{Abund_20K},{tmp_string}\n'
+                #tmp = f'{ID},{otu},{Abund},{Abund_20K},{tmp_string}\n'
                 out.write(f'{ID},{otu},{Abund},{Abund_20K},{tmp_string}\n')
-            if set(line.split('\t')[1:-2]) & NRS_IDs:
                 tmp = []
                 line = line.rstrip('\n')
                 for ele in line.split('\t'):
                     tmp.append(ele)
-                NRS_list.append(tmp)
+                tmp.append(amplicon)
+                ASV_list.append(tmp)
+print(len(ASV_list))
 
-#make a pandas dataframe and format the columns ready for merging with taxonomy
-NRS_df = pd.DataFrame(NRS_list, columns=NRS_header).fillna(np.nan)
-NRS_df.drop(['Abundance'],axis=1,inplace=True)
-NRS_df['Abundance_20K'].replace('', np.nan, inplace=True)
-print(NRS_df.shape)
-NRS_df.dropna(subset=['Abundance_20K'], inplace=True)
-print("Shape of requested NRS amplicon abndance table: " )
-print(NRS_df.shape)
-                
-#process the NRS samples to get the taxa required
-Taxonomies= []
-with open('NRS_taxon_list.csv', mode='r') as f:
+ASV_columns = ASV_header + ['amplicon_name']
+ASV_df = pd.DataFrame(ASV_list, columns=ASV_columns)
+#convert the abundance columns to mumbers
+ASV_df['Abundance'] = ASV_df['Abundance'].astype('int')
+#Abudance 20K will have trouble converting to int, we will leave it as a float for the moment and change to 'Int64' later
+ASV_df['Abundance_20K'] = pd.to_numeric(ASV_df['Abundance_20K'])
+print("Shape of combined ASV table")
+print(ASV_df.shape)
+
+#get the total number and counts of zotus for each sample/amplicon
+print("Getting ASV abundance info")
+for amplicon in All_Amplicons:
+    amplicon_abund_col =  amplicon + "_total_abundance"
+    amplicon_count_col =  amplicon + "_total_count"
+    amplicon_abund20K_col =  amplicon + "_abundance_20K"
+    amplicon_count20K_col =  amplicon + "_count_20K"
+    #amplicon_count_order.extend([amplicon_abund_col,amplicon_count_col,amplicon_abund20K_col,amplicon_count20K_col])
+    tmp = ASV_df[ASV_df['amplicon_name'] == amplicon].groupby(['Sample_only','amplicon_name'])['Abundance'].agg(['sum', 'count']).reset_index().rename(columns={'sum':amplicon_abund_col,'count':amplicon_count_col})
+    ASV_df = pd.merge(ASV_df, tmp, left_on=['Sample_only','amplicon_name'], right_on=['Sample_only','amplicon_name'], how='left')
+    tmp = ASV_df[ASV_df['amplicon_name'] == amplicon].groupby(['Sample_only','amplicon_name'])['Abundance_20K'].agg(['sum', 'count']).reset_index().rename(columns={'sum':amplicon_abund20K_col,'count':amplicon_count20K_col})
+    ASV_df = pd.merge(ASV_df, tmp, left_on=['Sample_only','amplicon_name'], right_on=['Sample_only','amplicon_name'], how='left')
+print(ASV_df.shape)
+
+print("Getting requested traits and Taxa")
+traits_wanted = set()
+with open('trait_request.list', mode='r') as f:
     for line in f:
-        line = line.strip()
-        #skip the header
-        if '#' in line:
+        if "#" in line:
             continue
         #skip any blank lines
         if len(line.strip()) == 0:
             continue
-        tmp = []
-        for ele in line.split(','):
-            tmp.append(ele.rstrip('\n'))
-        Taxonomies.append(tmp)
-print(Taxonomies)
+        traits_wanted.add(line.strip())
+print("Requested Traits")
+print(traits_wanted)
 
-get_amplicon_tax = set()
-for taxon in Taxonomies:
-    if taxon[0] == 'd__Bacteria':
-        get_amplicon_tax.add('16S')
-    if taxon[0] == 'd__Eukaryota':
-        get_amplicon_tax.add('18Sv4')
-    if taxon[0] == 'd__Archaea':
-        get_amplicon_tax.add('A16S')
-print(get_amplicon_tax)
-
-# read in and combine the Taxonomy tables
-combined_tax_table = pd.DataFrame()
-for amplicon in get_amplicon_tax:
+tax_list = []
+trait_list = []
+tax_columns = []
+for amplicon in taxon_dict.values():
     print("Getting taxonomy for: " + amplicon)
-    tax = pd.read_csv(glob.glob('/datasets/work/oa-amd/work/amd-work/zotutabs/' + amplicon + '/short/*.silva138.SKlearn.taxonomy')[0], sep='\t')
-    if "Traits" in tax.columns:
-        tax.drop(['Traits'], axis=1,inplace=True)
-    tax.drop(['confidence'], axis=1,inplace=True)
-    drops = ['d__Unassigned', 'd__Unclassified']
-    tax = tax[~tax['kingdom'].isin(drops)]
-    print("amplicon " + amplicon + " table shape")
-    print(tax.shape)
-    combined_tax_table = pd.concat([combined_tax_table, tax], ignore_index=True)
-print("Shape of combined amplicon taxonomy tables")
-print(combined_tax_table.shape)
-    
-#merge the dataframes
-NRS_tax = pd.merge(NRS_df, combined_tax_table, left_on='#OTU ID', right_on='#OTU ID', how='left')
-NRS_tax['Abundance_20K'] = NRS_tax['Abundance_20K'].astype('int')
-NRS_tax.drop(['#OTU ID'],axis=1,inplace=True)
-NRS_tax = NRS_tax.groupby(['Sample_only','kingdom','phylum','class','order','family','genus','species','amplicon'])['Abundance_20K'].sum().reset_index()
+    tax_file = glob.glob('/datasets/work/oa-amd/work/amd-work/zotutabs/' + amplicon + '/short/*.silva138.SKlearn.taxonomy')[0]
+    print(tax_file)
+    with open(tax_file, mode='r') as f:
+        count = 0
+        trait_col = False
+        
+        for line in f:
+            line = line.rstrip('\n')
+            if '#' in line:
+                if 'traits' not in line:
+                    trait_col = False
+                else:
+                    trait_col = True
+                if tax_columns:
+                    continue
+                else:
+                    for ele in line.split('\t'):
+                        if '#' in ele:
+                            tax_columns.append(ele)
+                        else:
+                            tax_columns.append(ele.title())
+                    if 'Traits' not in tax_columns:
+                        tax_columns.append('Traits')
+                print(tax_columns)
+            else:
+                tmp = []
+                for tax in lowest_tax:
+                    if tax in line:
+                        #use the function to generate a list from the line
+                        split_lines(line)
+                        tax_list.append(tmp)
+                if amplicon == '18Sv4':
+                    continue
+                else:
+                    tmp = []
+                    for trait in traits_wanted:
+                        if trait in line:
+                            #use the function to generate a list from the line
+                            split_lines(line)
+                            trait_list.append(tmp)
+print("Number of lines holding requested taxonomies")
+print(len(tax_list))
+print("Number of lines holding requested traits")
+print(len(trait_list))
 
-print("Shape of merged abundance taxonomy table")
-print(NRS_tax.shape)
+print("Calculating trait counts")
+#convert the traits retrieved into a dataframe
+trait_df = pd.DataFrame(trait_list, columns=tax_columns)
+print("Shape of dataframe holding requested traits")
+print(trait_df.shape)
 
-#search for the requested taxonomies
-NRS_abund_tax = pd.DataFrame()
-taxon_columns =  []
-for taxon in Taxonomies:
-    #make the string of all but the last taxon level to filter the final results
-    taxon_string = (',').join(taxon[:-1])
-    print(taxon_string)
-    #get the number of levels of requested taxonomies and make it relative to the positions in the table table
-    taxTable_pos = len(taxon)
-    print(taxTable_pos)
-    print(taxon[-1])
-    tmp = NRS_tax.copy()
-    #filter by the final taxonomic level provided
-    tmp = tmp[tmp.iloc[:, taxTable_pos].str.contains(taxon[-1])]
-    #make a string of the taxonomic levels above the final level
-    tmp['tax_string'] = tmp.iloc[:, 1:taxTable_pos].apply(lambda row: ','.join(row.values.astype(str)), axis=1)
-    #filter by the remainder of the tax string as a final check
-    tmp = tmp[tmp['tax_string'].isin(list(taxon_string.split(" ")))]
-    #if the taxonomy string terminates before species we will replace the lower taxonomies with the same text and regroup 
-    if taxTable_pos < 7:
-        tmp.iloc[:,taxTable_pos+1:8] = taxon[-1]
-        tmp = tmp.groupby(['Sample_only','kingdom','phylum','class','order','family','genus','species','amplicon'])['Abundance_20K'].sum().reset_index()
-    #add a column descriptor for describing the taxon requested ( lowest level taxonomy (last level requested))
-    tmp['taxon'] = taxon[-1] + "_abundance_20K"
-    taxon_columns.append(taxon[-1] + "_abundance_20K")
-    NRS_abund_tax = pd.concat([NRS_abund_tax, tmp], ignore_index=True)
-    print(NRS_abund_tax.shape)
-print('final taxonomy table shape')
-print(NRS_abund_tax.shape)
+#Merge the ASV abundance table withthe trait information requested so we can get the abundance of the identified traits
+trait_count_order = []
+trait_counts = pd.merge(ASV_df, trait_df, left_on='#OTU ID', right_on='#OTU ID', how = 'inner')
 
-#merge the abundance and taxonomy tables
-NRS_abund_tax = NRS_abund_tax[['Sample_only','Abundance_20K','amplicon','taxon']]
-NRSabund_meta = pd.merge(NRS_abund_tax,stringMatch, left_on='Sample_only', right_on='Sample_only', how='left')
-print("Merged abundance and taxonomy shape")
-print(NRSabund_meta.shape)
+ASV_sample_abund_cols = ['Sample_only',
+ 'amplicon_name', 
+ '16S_total_abundance',
+ '16S_total_count',
+ '16S_abundance_20K',
+ '16S_count_20K',
+ 'A16S_total_abundance',
+ 'A16S_total_count',
+ 'A16S_abundance_20K',
+ 'A16S_count_20K',
+ '18Sv4_total_abundance',
+ '18Sv4_total_count',
+ '18Sv4_abundance_20K',
+ '18Sv4_count_20K']
 
-#pivot the table to get the desired format and format the numeric format for export
-NRS_pivoted = pd.pivot_table(NRSabund_meta,index=['sample_id','depth','nrs_trip_code','nrs_sample_code','amplicon'], columns= ['taxon'], values=['Abundance_20K'])
-print(NRS_pivoted.shape)
-NRS_pivoted.columns = NRS_pivoted.columns.droplevel(0)
-for i in NRS_pivoted.index:
-    for col in taxon_columns:
-        try:
-            NRS_pivoted.loc[i,col] = str(int(NRS_pivoted.loc[i,col]))#.astype('Int64')
-        except:
-            pass
+#we will use the ASV_col list later so we will make a copy to extend
+trait_count_order = ASV_sample_abund_cols.copy()
+for trait in traits_wanted:
+    trait_abund_col =  trait + "_abundance"
+    trait_count_col =  trait + "_count"
+    trait_abund20K_col =  trait + "_abundance_20K"
+    trait_count20K_col =  trait + "_count_20K"
+    trait_count_order.extend([trait_abund_col,trait_count_col,trait_abund20K_col,trait_count20K_col])
+    tmp = trait_counts[trait_counts['Traits'].str.contains(trait)].groupby('Sample_only')['Abundance'].agg(['sum', 'count']).reset_index().rename(columns={'sum':trait_abund_col,'count':trait_count_col})
+    trait_counts = pd.merge(trait_counts, tmp, left_on='Sample_only', right_on='Sample_only', how='left')
+    tmp = trait_counts[trait_counts['Traits'].str.contains(trait)].groupby('Sample_only')['Abundance_20K'].agg(['sum', 'count']).reset_index().rename(columns={'sum':trait_abund20K_col,'count':trait_count20K_col})
+    trait_counts = pd.merge(trait_counts, tmp, left_on='Sample_only', right_on='Sample_only', how='left')
+trait_counts = trait_counts[['#OTU ID'] + trait_count_order]
+trait_counts = trait_counts.drop_duplicates(keep='first')
+print("Shape of dataframe holding trait counts")
+print(trait_counts.shape)
 
-#sort the df on the NRS sample code to make it easier for a human to read
-NRS_pivoted.sort_values(by=['nrs_sample_code'],ascending=True,inplace=True)
+#convert the taxonomies retrieved into a dataframe
+tax_df = pd.DataFrame(tax_list, columns=tax_columns)
+print("Shape of dataframe holding all requested taxonomies")
+print(tax_df.shape)
+#depending on the taxonomy levels searched (e.g. searching by genus and searching by species within that genus) we may have duplicate entries for the same ASV/taxonomy so we will drop them
+tax_df = tax_df.drop_duplicates(keep='first')
+print("Shape of dataframe holding unique requested taxonomies")
+print(tax_df.shape)
 
-#write the outut to csv
-final_NRSabund_file = os.path.join(os.path.abspath(os.getcwd()),'data/NRS_taxon_abundance.csv')
-print("writing NRS taxonomy abundances to output file: " + final_NRSabund_file)
-NRS_pivoted.to_csv(final_NRSabund_file)
+print("Merging taxonomy and trait info")
+# outer merge the taxonomy and traits to generate a table for all sample ID that had awanted trait and/or taxonomy  
+tax_traits_df = pd.merge(tax_df,trait_counts, left_on=['#OTU ID'], right_on=['#OTU ID'], how='outer')
+print(tax_traits_df.shape)
+tax_traits_df = tax_traits_df[trait_count_order]
+tax_traits_df = tax_traits_df.drop_duplicates(keep='first')
+print("Shape of dataframe merged taxonomy trait counts")
+print(tax_traits_df.shape)
+
+print("Merging taxonomy and ASV abundances")
+#merge the taxonomies and abundance tables
+tax_df = pd.merge(tax_df,ASV_df,left_on=['#OTU ID'],right_on=['#OTU ID'], how='inner')
+
+print("Merging Abundance and taxonomies with trait counts")
+tax_df = pd.merge(tax_df,tax_traits_df, left_on=ASV_sample_abund_cols,right_on=ASV_sample_abund_cols,how='outer')
+print(tax_df.shape)
+
+print("Formatting final table")
+#drop any columns that are all null
+tax_df = tax_df.dropna(axis=1, how='all')
+#add in the full AM sampleID
+tax_df_cols = tax_df.columns.tolist()
+tax_df['sample_id'] = '102.100.100/' + tax_df['Sample_only']
+tax_df = tax_df[['sample_id'] + tax_df_cols ]
+print(tax_df.shape)
+
+for col in tax_df.columns:
+    if "20K" in col:
+        print(col)
+        tax_df[col] = tax_df[col].apply(lambda x: np.nan if x == 0 else x)
+        tax_df[col] = pd.to_numeric(tax_df[col]).astype('Int32')
+print("Writing final table")
+tax_df.to_csv('data/taxa_traits_ASV_request.csv', index=False)
+print("DONE!")
