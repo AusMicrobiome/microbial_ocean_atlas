@@ -76,6 +76,21 @@ parameters_list = parameters['param'].values.tolist()
 merge_cols = ['Sample_only'] + parameters_list
 all_cti = pd.DataFrame(columns=merge_cols)
 amplicons = ['16S', 'A16S', '18Sv4']
+
+print("Getting requested traits and Taxa")
+traits_wanted = set()
+with open('trait_request.list', mode='r') as f:
+    for line in f:
+        if "#" in line:
+            continue
+        #skip any blank lines
+        if len(line.strip()) == 0:
+            continue
+        traits_wanted.add(line.strip())
+print("Requested Traits")
+print(traits_wanted)
+traits_string = '|'.join(traits_wanted)
+
 for amplicon in amplicons:
     #########
     # Define file paths
@@ -122,16 +137,15 @@ for amplicon in amplicons:
         print(tax.shape)
         print("Selecting traits")
         tax['traits'].fillna('nan',inplace=True)
-        tax = tax[tax['traits'].str.contains('fish_parasites|nitrogen_fixation')].reset_index(drop=True)
+        tax = tax[tax['traits'].str.contains(traits_string)].reset_index(drop=True)
         print(tax.shape)
         tax = tax.reset_index(drop=True).astype(str)
         traits_merged = pd.merge(tax,abund,left_on='#OTU ID',right_on='#OTU ID', how='left')
         print(traits_merged.shape)
         traits_merged = traits_merged[traits_merged['Sample_only'].notna()].reset_index(drop=True)
         print(traits_merged.shape)
-        traits_list = ['fish_parasites','nitrogen_fixation']
         trait_abund = []
-        for trait in traits_list:
+        for trait in traits_wanted:
             col_name = amplicon + "_" + trait
             trait_abund.append(col_name)
             traits_merged[col_name] =  np.nan
@@ -154,7 +168,7 @@ for amplicon in amplicons:
     all_cti = pd.merge(all_cti,cti_merge, left_on=merge_cols, right_on=merge_cols, how='outer')
     print(all_cti.shape)
 #sum the traits for each amplicon into one total column
-for trait in traits_list:
+for trait in traits_wanted:
     trait_columns = [s for s in all_cti.columns if trait in s]
     all_cti[trait] = all_cti[trait_columns].sum(axis=1)
 
@@ -186,7 +200,7 @@ for ID in all_cti['Sample_only']:
 #########
 # Query the AMDB for the site metadata needed and merge it with the CI table
 #########
-returnfields=['sample_id','nrs_trip_code','nrs_sample_code','sample_site_location_description','latitude','longitude','collection_date','utc_time_sampled','utc_date_sampled','imos_site_code','depth','density','tot_depth_water_col','chlorophyll_a','ammonium','total_co2','turbidity','alkalinity','secchi_depth','picoeukaryotes','prochlorococcus','synechococcus']
+returnfields=['sample_id','nrs_trip_code','nrs_sample_code','voyage_code','sample_site_location_description','latitude','longitude','collection_date','utc_time_sampled','utc_date_sampled','imos_site_code','depth','density','tot_depth_water_col','chlorophyll_a','ammonium','total_co2','turbidity','alkalinity','secchi_depth','picoeukaryotes','prochlorococcus','synechococcus']
 searchfield = 'sample_id'
 selectColumns_by_fieldValues(returnfields, searchfield, var_list)
 #make the NRS TripCode_depth from the nrs_sample_code
@@ -308,7 +322,7 @@ shutil.move('AM_input_file_metadata.txt', 'data/AM_input_file_metadata.txt')
 #- dictionary should be structured with the column order that IMOS wants
 #- dict structure should be <AM_column_name>:<IMOS_column name> - known mappings so far are below 
 #- all columns to be retained in final table should be listed - even if the key:val are the same
-column_dict = {'Sample_only':'code','TripCode_depth':'TripCode_depth','nrs_trip_code':'TripCode',\
+column_dict = {'Sample_only':'code','TripCode_depth':'TripCode_depth','nrs_trip_code':'TripCode','voyage_code':'voyage_code',\
 'sample_site_location_description':'StationName','StationCode':'StationCode',\
 'longitude':'Longitude','latitude':'Latitude','collection_date':'SampleDateUTC',\
 'utc_time_sampled':'Time_24hr','Year':'Year','Month':'Month','Day':'Day',\
@@ -459,6 +473,10 @@ all_cti.drop(drops,axis=1, inplace=True)
 all_cti = all_cti[known_col_variants]
 #map the column names to the IMOS format
 all_cti.columns = all_cti.columns.to_series().map(column_dict)
+
+#fill the TripCode column with the information from the voyage_code (git issue #10)
+all_cti['TripCode'] = all_cti['TripCode'].combine_first(all_cti['voyage_code'])
+all_cti.drop(['voyage_code'],axis=1, inplace=True)
 
 #########
 # Write the final output file- we will overwrite the file in the data dir
