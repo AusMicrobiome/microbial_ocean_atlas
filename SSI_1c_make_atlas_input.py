@@ -81,7 +81,7 @@ def selectColumns_by_partialValues(returnfields, searchfield, wild_card):
 # End Database Functions
 
 def write_files_used(filename):
-    with open('files_analysed.txt', mode='a') as f:
+    with open('AM_input_file_metadata.txt', mode='a') as f:
         f.write(f'{filename}\n')
 
 def split_lines(line):
@@ -103,6 +103,8 @@ returnfields = ['sample_id','temp', 'salinity', 'nitrate_nitrite', 'phosphate', 
 searchfield = 'sample_type'
 var_list = ['Pelagic','Coastal water']
 selectColumns_by_fieldValues(returnfields, searchfield, var_list)
+AMDB_file = os.path.basename(db_name)
+write_files_used(AMDB_file)
 
 #########
 # Format the df for use by the R script
@@ -162,6 +164,9 @@ All_Amplicons = ['16S','A16S','18Sv4']
 ASV_list = []
 for amplicon in All_Amplicons:
     abund_file = glob.glob('/datasets/work/oa-amd/work/amd-work/zotutabs/' + amplicon + '/short/*_all_20K_combined.txt')[0]
+    write_files_used(abund_file)
+    abundance_file = os.path.basename(abund_file)
+    write_files_used(abundance_file)
     outfile_all = amplicon + "_infile_multi_params_all.csv"
     
     print("saving merged abundance and metadata: " + outfile_all)
@@ -244,6 +249,8 @@ tax_columns = []
 for amplicon in taxon_dict.values():
     print("Getting taxonomy for: " + amplicon)
     tax_file = glob.glob('/datasets/work/oa-amd/work/amd-work/zotutabs/' + amplicon + '/short/*.silva138.SKlearn.taxonomy')[0]
+    taxonomy_file = os.path.basename(tax_file)
+    write_files_used(taxonomy_file)
     print(tax_file)
     with open(tax_file, mode='r') as f:
         count = 0

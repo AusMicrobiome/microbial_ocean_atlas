@@ -57,6 +57,11 @@ for (param in params_list){
     if (param == 'Phosphate'){
         data <- data %>% drop_na(`phosphate`) %>% filter(!phosphate < 0) %>% mutate(SST = round(`phosphate`/0.01) * 0.01)
         data <- data %>% filter(data$phosphate > -3) #remove samples where the AM sentry value has been entered as -9999
+        
+        #NOTE the removal of phosphate values above 3 is being performed due to high values in ~20 samples from Long Reef Port Phillip Bay
+        #These were causing binning issues resulting in the script to crash
+        #will need to sort out a better way to deal with outliers but this will require more resourcing 
+        data <- data %>% filter(data$phosphate < 2.9) #remove phosphate values >3.2 as they are causing issues with binning
         #bin samples into  and find the number of samnples in the smallest bin
         write("bin", stdout())
         data_sub <- data %>% select(Sample_only, phosphate) %>% distinct()
