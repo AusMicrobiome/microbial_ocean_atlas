@@ -235,12 +235,12 @@ for ID in IDs:
     # the Rscript has cast the sample IDs as floats so we will drop the decimal
     ID = str(ID).replace('.0','')
     #read a local tar file
-    tar_file_name = "/datasets/work/oa-amd/work/amd-work/SQM_READS/" + str(ID) + ".tar.gz"
+    tar_file_name = "/datasets/work/ev-aus-microb-archive/work/SQM_reads/" + str(ID) + "_sqmreads.tar.gz"
     if os.path.exists(tar_file_name):
         #write the kegg file used to the metadata file
         tar_f = os.path.basename(tar_file_name)
         write_files_used(tar_f)
-        map_stat = str(ID) + "/" + str(ID) +"_MGSD_CSIRO.sqmreads.out.mappingstat"
+        map_stat = str(ID) + "_sqmreads/" + str(ID) +"_MGSD_CSIRO.sqmreads.out.mappingstat"
         #read the Mappingstat file within the tarball to get the toal number of reads proceesed
         with tarfile.open(tar_file_name, "r:gz") as tar:
             with tar.extractfile(map_stat) as f:
@@ -251,7 +251,7 @@ for ID in IDs:
                     else:
                         Sample,File,TotalReads,Reads_hit_nr =  line.split('\t')
                         total_reads = str(TotalReads)
-        data_file_name = str(ID) + "/" + str(ID) +"_MGSD_CSIRO.sqmreads.out.allreads.funkegg"
+        data_file_name = str(ID) + "_sqmreads/" + str(ID) +"_MGSD_CSIRO.sqmreads.out.allreads.funkegg"
         #Read the samples kegg file within the tarball to get the requested patways
         with tarfile.open(tar_file_name, "r:gz") as tar:
             with tar.extractfile(data_file_name) as f:
