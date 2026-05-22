@@ -7,7 +7,7 @@
 #SBATCH --time=06:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --mem=30gb
+#SBATCH --mem=15gb
 #SBATCH -a 1-1000%200
 #SBATCH --mail-user=XXXX@csiro.au
 #SBATCH --mail-type=END

@@ -7,7 +7,7 @@
 #SBATCH --time=02:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --mem=40gb
+#SBATCH --mem=30gb
 #SBATCH --mail-user=XXXX@csiro.au
 #SBATCH --mail-type=END
 
@@ -32,7 +32,7 @@ start=$SECONDS
 
 module load python/3.9.4
 
-python SSI_1c_make_atlas_input.py
+python -u SSI_1c_make_atlas_input.py
 
 duration=$(( SECONDS - start ))
 echo "Time (s) for individual array script to run: "$duration

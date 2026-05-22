@@ -4,5 +4,8 @@ Scripts with the prefix `SSI_` are used internally at CSRIO to calculate indices
 
 Taxa, Traits or genes of interest can be included in the analysis by incorporating them into the `taxa_request.list`, ` trait_request.list` and ` gene_request.csv` documents respectively.
 
+R scripts for the generation of species and community indices for a variety of environmental parameters are used as described in:
+Brown, M.V., Ostrowski, M., Messer, L.F. et al. A marine heatwave drives significant shifts in pelagic microbiology. Commun Biol 7, 125 (2024). https://doi.org/10.1038/s42003-023-05702-4
+
 Details on producing indices from ASV tables generated/downloaded through the Australian Microbiome data portal (https://data.bioplatforms.com/bpa/otu) are under development.
 

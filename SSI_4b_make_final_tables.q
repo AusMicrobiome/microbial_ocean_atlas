@@ -35,7 +35,7 @@ module load python/3.9.4
 
 Rscript SSI_4c_CSIRO_diversity.R
 
-python SSI_4c_generate_final_table.py
+python -u SSI_4c_generate_final_table.py
 
 duration=$(( SECONDS - start ))
 

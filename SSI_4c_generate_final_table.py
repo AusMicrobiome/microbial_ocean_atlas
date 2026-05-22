@@ -12,6 +12,7 @@ import sqlite3
 from pandas.io import sql
 import os
 import shutil
+from dotenv import load_dotenv
 
 #####
 # Start Database functions
@@ -21,7 +22,7 @@ def connect_DB():
     global db_conn
     global c
     global db_name
-    db_name = glob.glob("/datasets/work/oa-amd/work/amd-work/SQlite/*.db")[0]
+    db_name = glob.glob(DB)[0]
     print(db_name)
     #connect to the sqlite database 
     db_conn = sqlite3.connect(db_name)
@@ -61,6 +62,33 @@ def write_files_used(filename):
         f.write(f'{filename}\n')
 
 #########
+#load the environmental variables
+#########
+env_path = os.getenv("MICRO_OCEAN_ATLAS_ENV")
+load_dotenv(env_path)
+
+if not env_path:
+    raise EnvironmentError(
+        "Environment variable MICRO_OCEAN_ATLAS_ENV is not set. "
+        "Please add `export path_to_microbial_ocean_atlas.env` to your ~/.bashrc"
+    )
+
+if not os.path.isfile(env_path):
+    raise FileNotFoundError(
+        f"The .env file was not found at: {env_path}. "
+        "Please check the path set in ENV_VARS."
+    )
+
+ZOTUS =  os.getenv("ZOTUS")
+print(ZOTUS)
+
+DB = os.getenv("DB_PATH")
+print(DB)
+
+SQM_READS = os.getenv("SQM_READS")
+print(SQM_READS)
+
+#########
 # Delete the subset bootstrap files
 #########
 for f in glob.glob("*_subset*.csv"):
@@ -95,8 +123,8 @@ for amplicon in amplicons:
     #########
     # Define file paths
     #########
-    tax_f = glob.glob('/datasets/work/oa-amd/work/amd-work/zotutabs/' + amplicon + '/short/*.silva132.SKlearn.taxonomy')[0]
-    abund_f = glob.glob('/datasets/work/oa-amd/work/amd-work/zotutabs/' + amplicon + '/short/*_all_20K_combined.txt')[0]
+    tax_f = glob.glob(os.path.join(ZOTUS, f'{amplicon}/short/*.silva132.SKlearn.taxonomy'))[0]
+    abund_f = glob.glob(os.path.join(ZOTUS, f'{amplicon}/short/*_all_20K_combined.txt'))[0]
     #write the taxonomy file used to the metadata file
     taxonomy_file = os.path.basename(tax_f)
     write_files_used(taxonomy_file)
@@ -235,7 +263,7 @@ for ID in IDs:
     # the Rscript has cast the sample IDs as floats so we will drop the decimal
     ID = str(ID).replace('.0','')
     #read a local tar file
-    tar_file_name = "/datasets/work/ev-aus-microb-archive/work/SQM_reads/" + str(ID) + "_sqmreads.tar.gz"
+    tar_file_name = os.path.join(SQM_READS, f"{ID}_sqmreads.tar.gz")
     if os.path.exists(tar_file_name):
         #write the kegg file used to the metadata file
         tar_f = os.path.basename(tar_file_name)
